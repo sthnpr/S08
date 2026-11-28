@@ -11,6 +11,7 @@ import { OrderPage } from './components/OrderPage';
 import { ProductCatalogSection } from './components/ProductCatalogSection';
 import { PageRoute, ProductCategoryId, ProductItem } from './data/s08Data';
 import { LanguageProvider } from './i18n/LanguageContext';
+import { PrintDocKind, PrintDocument } from './print/PrintDocument';
 
 const VALID_PAGES: PageRoute[] = [
   'home',
@@ -21,8 +22,15 @@ const VALID_PAGES: PageRoute[] = [
   'order',
 ];
 
+function getPrintDocFromHash(): PrintDocKind | null {
+  const pathOnly = window.location.hash.split('?')[0].replace(/^#\/?/, '').trim();
+  if (pathOnly === 'print/company-profile') return 'company-profile';
+  if (pathOnly === 'print/orderbook') return 'orderbook';
+  return null;
+}
+
 function getPageFromHash(): PageRoute {
-  const raw = window.location.hash.replace(/^#\/?/, '').trim();
+  const raw = window.location.hash.split('?')[0].replace(/^#\/?/, '').trim();
   if (raw === 'brief') return 'order';
   if (VALID_PAGES.includes(raw as PageRoute)) {
     return raw as PageRoute;
@@ -31,6 +39,7 @@ function getPageFromHash(): PageRoute {
 }
 
 function AppShell() {
+  const [printDoc, setPrintDoc] = useState<PrintDocKind | null>(() => getPrintDocFromHash());
   const [currentPage, setCurrentPage] = useState<PageRoute>(() => getPageFromHash());
   const [activeCategory, setActiveCategory] = useState<ProductCategoryId>('all');
   const [orderProduct, setOrderProduct] = useState<ProductItem | null>(null);
@@ -39,12 +48,17 @@ function AppShell() {
 
   useEffect(() => {
     const onHashChange = () => {
+      setPrintDoc(getPrintDocFromHash());
       setCurrentPage(getPageFromHash());
       window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
     };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  if (printDoc) {
+    return <PrintDocument doc={printDoc} />;
+  }
 
   const navigateTo = (page: PageRoute) => {
     const nextHash = page === 'home' ? '#/' : `#/${page}`;

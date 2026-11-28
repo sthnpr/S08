@@ -84,6 +84,8 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
 
     let rafId = 0;
     let isVisible = true;
+    let isDisposed = false;
+    let isVertical = false;
     let width = 0;
     let height = 0;
     let cols = 0;
@@ -100,6 +102,7 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
       const rect = container.getBoundingClientRect();
       width = Math.max(300, Math.floor(rect.width));
       height = Math.max(360, Math.floor(rect.height));
+      isVertical = width < 768 && height > width;
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.floor(width * dpr);
@@ -111,7 +114,8 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
       cols = Math.ceil(width / cellW);
       rows = Math.ceil(height / cellH);
 
-      // Stamp bold monumental "S08" typographic relief across the lower-center behind the Liquid Glass bento cards
+      // Stamp bold monumental "S08" typographic relief behind the Liquid Glass bento cards
+      // On mobile (< 768px portrait), stack S / 0 / 8 vertically; on desktop keep horizontal S08
       maskCanvas.width = cols;
       maskCanvas.height = rows;
       maskData = new Float32Array(cols * rows);
@@ -120,9 +124,33 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
         maskCtx.fillStyle = '#FFFFFF';
         maskCtx.textAlign = 'center';
         maskCtx.textBaseline = 'middle';
-        const fontSize = Math.min(rows * 0.86, cols * 0.42);
-        maskCtx.font = `900 ${fontSize}px "Geist", -apple-system, sans-serif`;
-        maskCtx.fillText('S08', cols * 0.5, rows * 0.58);
+
+        if (isVertical) {
+          maskCtx.save();
+          maskCtx.scale(1 / cellW, 1 / cellH);
+
+          const fontSizePx = Math.min(width * 1.18, height * 0.275);
+          const stepY = fontSizePx * 0.83;
+          const centerX = width * 0.5;
+          const centerY = height * 0.615;
+          const chars = ['S', '0', '8'];
+
+          maskCtx.font = `900 ${fontSizePx}px "Geist", -apple-system, sans-serif`;
+          chars.forEach((ch, idx) => {
+            const cy = centerY + (idx - 1) * stepY;
+            maskCtx.save();
+            maskCtx.translate(centerX, cy);
+            maskCtx.scale(1.15, 1);
+            maskCtx.fillText(ch, 0, 0);
+            maskCtx.restore();
+          });
+
+          maskCtx.restore();
+        } else {
+          const fontSize = Math.min(rows * 0.86, cols * 0.42);
+          maskCtx.font = `900 ${fontSize}px "Geist", -apple-system, sans-serif`;
+          maskCtx.fillText('S08', cols * 0.5, rows * 0.58);
+        }
 
         const img = maskCtx.getImageData(0, 0, cols, rows).data;
         for (let i = 0; i < cols * rows; i++) {
@@ -132,6 +160,9 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
     };
 
     buildGrid();
+    document.fonts?.ready.then(() => {
+      if (!isDisposed) buildGrid();
+    });
 
     const resizeObserver = new ResizeObserver(() => buildGrid());
     resizeObserver.observe(container);
@@ -159,19 +190,34 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
       ctx.fillRect(0, 0, width, height);
 
       // Soft ambient silver glow strictly behind the S08 sculpture so Liquid Glass cards catch real optical depth
-      const ambientGlow = ctx.createRadialGradient(
-        width * 0.5,
-        height * 0.58,
-        20,
-        width * 0.5,
-        height * 0.58,
-        Math.max(width * 0.48, 320)
-      );
-      ambientGlow.addColorStop(0, 'rgba(255, 255, 255, 0.085)');
-      ambientGlow.addColorStop(0.45, 'rgba(255, 255, 255, 0.028)');
-      ambientGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      ctx.fillStyle = ambientGlow;
-      ctx.fillRect(0, 0, width, height);
+      if (isVertical) {
+        ctx.save();
+        const glowRadiusX = Math.max(width * 0.62, 220);
+        const glowRadiusY = Math.max(height * 0.45, 360);
+        ctx.translate(width * 0.5, height * 0.615);
+        ctx.scale(1, glowRadiusY / glowRadiusX);
+        const ambientGlow = ctx.createRadialGradient(0, 0, 16, 0, 0, glowRadiusX);
+        ambientGlow.addColorStop(0, 'rgba(255, 255, 255, 0.095)');
+        ambientGlow.addColorStop(0.5, 'rgba(255, 255, 255, 0.032)');
+        ambientGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = ambientGlow;
+        ctx.fillRect(-glowRadiusX, -glowRadiusX, glowRadiusX * 2, glowRadiusX * 2);
+        ctx.restore();
+      } else {
+        const ambientGlow = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.58,
+          20,
+          width * 0.5,
+          height * 0.58,
+          Math.max(width * 0.48, 320)
+        );
+        ambientGlow.addColorStop(0, 'rgba(255, 255, 255, 0.085)');
+        ambientGlow.addColorStop(0.45, 'rgba(255, 255, 255, 0.028)');
+        ambientGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = ambientGlow;
+        ctx.fillRect(0, 0, width, height);
+      }
 
       // Subtle warm vermilion cursor aura behind the glass when hovering
       if (mouse.active) {
@@ -256,7 +302,7 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
 
           // Soft outer perimeter fade into pure OLED black
           const edgeX = Math.min(nx, 1 - nx) * 8.0;
-          const edgeY = Math.min(ny, 1 - ny) * 6.0;
+          const edgeY = Math.min(ny, 1 - ny) * (isVertical ? 10.0 : 6.0);
           const edgeMask = Math.min(1, Math.min(edgeX, edgeY));
           energy *= 0.38 + edgeMask * 0.62;
 
@@ -286,6 +332,7 @@ export const InteractiveAsciiWeave: React.FC<InteractiveAsciiWeaveProps> = ({
     rafId = requestAnimationFrame(render);
 
     return () => {
+      isDisposed = true;
       cancelAnimationFrame(rafId);
       resizeObserver.disconnect();
       intersectionObserver.disconnect();

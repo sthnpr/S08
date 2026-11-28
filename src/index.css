@@ -427,3 +427,51 @@
   border-color: #e04f26;
 }
 
+/* ========================================================================= */
+/* A4 PRINT SYSTEM — S08 Company Profile & Orderbook                         */
+/* ========================================================================= */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.print-root {
+  min-height: 100vh;
+  background: #d8d5cc;
+  padding: 28px 0 60px;
+}
+
+.print-sheet {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto 28px;
+  overflow: hidden;
+  background: #f7f5f0;
+  color: #1b1b16;
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.35);
+  break-after: page;
+  page-break-after: always;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-sheet:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+@media print {
+  html,
+  body,
+  .print-root {
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .print-sheet {
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
