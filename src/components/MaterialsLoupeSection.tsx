@@ -45,7 +45,7 @@ export const MaterialsLoupeSection: React.FC<MaterialsLoupeSectionProps> = ({
   const [selectedColorLabel, setSelectedColorLabel] = useState<string>(
     MATERIAL_GROUPS[0].items[0].colorOptions[0]?.label ?? 'Charcoal'
   );
-  const [zoomLevel, setZoomLevel] = useState<1 | 2 | 4>(2);
+  const [zoomLevel, setZoomLevel] = useState<1 | 2 | 4>(1);
   const [isHovering, setIsHovering] = useState(false);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
@@ -65,8 +65,8 @@ export const MaterialsLoupeSection: React.FC<MaterialsLoupeSectionProps> = ({
     cy: 0,
     smoothCx: 0,
     smoothCy: 0,
-    smoothScale: 1.55,
-    zoomLevel: 2 as 1 | 2 | 4,
+    smoothScale: 1.0,
+    zoomLevel: 1 as 1 | 2 | 4,
   });
 
   useEffect(() => {
@@ -91,18 +91,18 @@ export const MaterialsLoupeSection: React.FC<MaterialsLoupeSectionProps> = ({
       const m = motionRef.current;
       const z = m.zoomLevel;
 
-      // Resting zoom vs active hover-pan zoom (ensures smooth movement even on 1x!)
+      // Natural full-frame close-up at 1x, with silky hover pan & higher magnification at 2x / 4x
       const targetScale = m.active
         ? z === 1
-          ? 1.35
+          ? 1.24
           : z === 2
-            ? 1.95
-            : 3.1
+            ? 1.65
+            : 2.55
         : z === 1
           ? 1.0
           : z === 2
-            ? 1.5
-            : 2.35;
+            ? 1.38
+            : 2.05;
 
       const goalNx = m.active ? m.targetNx : 0.5;
       const goalNy = m.active ? m.targetNy : 0.5;
@@ -308,11 +308,15 @@ export const MaterialsLoupeSection: React.FC<MaterialsLoupeSectionProps> = ({
 
               {/* Top Left Liquid-Glass Specimen Badges */}
               <div className="pointer-events-none absolute left-4 top-4 z-10 flex items-center gap-2">
-                <span className="rounded-full border border-white/20 bg-black/55 px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-white backdrop-blur-md">
+                <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.08em] text-white backdrop-blur-md">
                   {inspectedItem.spec}
                 </span>
-                <span className="rounded-full border border-white/60 bg-white/80 px-3 py-1 font-mono text-[10.5px] text-[#1B1B16] backdrop-blur-md">
-                  {selectedColorLabel}
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/85 px-3 py-1 font-mono text-[10.5px] text-[#1B1B16] backdrop-blur-md">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full border border-black/20"
+                    style={{ backgroundColor: selectedColorHex }}
+                  />
+                  <span>{selectedColorLabel}</span>
                 </span>
               </div>
 
